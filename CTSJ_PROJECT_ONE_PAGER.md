@@ -11,13 +11,13 @@
 ## 1. System Screenshots
 
 ````carousel
-![Desktop Intake Form](/Users/ctsj-contributor/.gemini/antigravity/brain/cceb7f8b-5d56-4821-8f55-da1294f5e838/screenshot_desktop.png)
+![Desktop Intake Form](./docs/images/screenshot_desktop.png)
 <!-- slide -->
-![Mobile Intake Form](/Users/ctsj-contributor/.gemini/antigravity/brain/cceb7f8b-5d56-4821-8f55-da1294f5e838/screenshot_mobile.png)
+![Mobile Intake Form](./docs/images/screenshot_mobile.png)
 <!-- slide -->
-![Volunteer Members Database](/Users/ctsj-contributor/.gemini/antigravity/brain/cceb7f8b-5d56-4821-8f55-da1294f5e838/screenshot_members_db.png)
+![Volunteer Members Database](./docs/images/screenshot_members_db.png)
 <!-- slide -->
-![Projects Database & Sync Hub](/Users/ctsj-contributor/.gemini/antigravity/brain/cceb7f8b-5d56-4821-8f55-da1294f5e838/screenshot_projects_db.png)
+![Projects Database & Sync Hub](./docs/images/screenshot_projects_db.png)
 ````
 
 * **Desktop Form ([screenshot_desktop.png](./docs/images/screenshot_desktop.png)):** 2-column minimalist layout with official CTSJ power logo at top, skill chips with `✕` dismiss, floating autocomplete, availability pills, and **Submit button anchored at the very bottom**.

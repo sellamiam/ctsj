@@ -1,22 +1,23 @@
-# Civic Tech Saint John (CTSJ) — 3-Engineer Collaboration & Contribution Guide
+# Civic Tech Saint John (CTSJ) — Contributor Guide & Roadmap
 
-> **Team Size:** 3 Software Engineers  
-> **Target Timeline:** 1 to 2 Sprints (Ready for Tuesday Hack Night)  
-> **Development Model:** Contract-First, Trunk-Based Monorepo  
+> **Community:** Civic Tech Saint John (CTSJ)  
+> **Target Completion:** **Tue Dec 1, 6:00 PM** (Ahead of Tuesday Hack Night)  
+> **Development Model:** Modular Streams, Contract-First Architecture  
+> **Work Allocation:** Modular tasks picked up **based on contributor availability**  
 
 ---
 
-## 1. Optimal Role Division (3 Clear Lanes)
+## 1. Modular Workstreams (Based on Availability)
 
-To avoid stepping on each other's toes and eliminate merge conflicts, divide the workload into three distinct ownership areas:
+Tasks are designed to be decoupled and picked up by contributors based on their availability:
 
 ```
 +-----------------------------------+-----------------------------------+-----------------------------------+
-| ENGINEER 1: FRONTEND & UX         | ENGINEER 2: BACKEND & CLOUD       | ENGINEER 3: INTEGRATIONS & DEVOPS |
+| FRONTEND & UX MODULE              | BACKEND & DATA MODULE             | INTEGRATIONS & SYNC MODULE        |
 +-----------------------------------+-----------------------------------+-----------------------------------+
-| • Responsive Web Form             | • Google Cloud & Firebase Setup   | • Google Sheets Project CMS       |
+| • Responsive Web Form             | • Google Cloud Always-Free Tier   | • Google Sheets Project CMS       |
 |   (Mobile + Desktop 2-column)     | • Firestore Collections & Schemas | • Google Apps Script Webhook      |
-| • Municipal Autocomplete          | • Cloud Functions API (Node.js)   | • Organizer Querying & Looker BI  |
+| • Municipal Autocomplete          | • Cloud Functions API (Node.js)   | • Looker Studio Reporting         |
 | • Skill Chips & Smart Bio Parser  | • Firestore Security Rules (RBAC) | • QR Assets & WordPress Route     |
 | • 7-Day Availability Grid         | • PII Encryption & CASL Audit     | • CI/CD Deployment Pipeline       |
 | • Kiosk Mode (Auto-reset timer)   | • API Contract Mocking            | • End-to-End Testing & Staging    |
@@ -25,55 +26,49 @@ To avoid stepping on each other's toes and eliminate merge conflicts, divide the
 
 ---
 
-## 2. Recommended Repository Structure (Monorepo)
+## 2. Decoupled Repository Structure
 
-Keep everything in a single GitHub repository (`CivicTechSaintJohn/ctsj-roster` or `projects/ctsj`) with isolated directories:
+All platform modules live in a single repository with clear boundaries:
 
 ```text
 ctsj/
-├── frontend/                 # Owned by Engineer 1
-│   ├── src/
-│   │   ├── components/       # Form, SkillChips, AvailabilityGrid, KioskTimer
-│   │   ├── lib/              # skills_parser.js, api_client.js
-│   │   └── App.jsx
-│   ├── package.json
-│   └── tailwind.config.js
+├── frontend/                 # Web form, skill tokenizer, and kiosk UI
+│   ├── VolunteerIntakeForm.jsx
+│   └── skills_parser.js
 │
-├── backend/                  # Owned by Engineer 2
-│   ├── functions/            # Cloud Functions (index.js, handlers)
-│   ├── firestore.rules       # Security rules (least-privilege PII protection)
-│   ├── firestore.indexes.json
-│   └── package.json
+├── backend/                  # Google Cloud Functions & Firestore security
+│   └── cloud_functions_sample.js
 │
-├── integrations/             # Owned by Engineer 3
-│   ├── apps_script/          # google_apps_script_sync.js (Sheet onEdit webhook)
-│   ├── looker_studio/        # BigQuery queries for volunteer/skills reports
-│   └── qr/                   # High-res permanent vector QR codes
+├── scripts/                  # Google Sheets & bi-directional sync
+│   └── google_apps_script_sync.js
 │
-├── docs/                     # Shared documentation & architecture maps
-│   └── images/               # UI mockups & slide templates
+├── docs/                     # Interactive mockups, screenshots & architecture
+│   ├── ctsj_interactive_mockups.html
+│   └── images/
 │
-└── .github/workflows/        # CI/CD (GitHub Actions -> Firebase / Vercel)
+├── CTSJ_PLATFORM_ONE_PAGER.pdf
+├── CTSJ_PROJECT_ONE_PAGER.md
+└── README.md
 ```
 
 ---
 
 ## 3. The "Contract-First" Collaboration Strategy
 
-The biggest bottleneck in small teams is the frontend engineer waiting on the backend to be deployed. Solve this on **Day 1** by locking in the JSON API Contract:
+To allow contributors to work independently regardless of schedule differences, frontend and backend integrate via a standardized JSON API contract:
 
 ### Endpoint 1: `POST /checkVolunteerEmail`
 ```json
 // Request
-{ "email": "jane@example.com" }
+{ "email": "volunteer@example.com" }
 
 // Response (If found)
 {
   "exists": true,
   "profile": {
-    "firstName": "Jane",
-    "lastName": "Doe",
-    "tel": "+15065550199",
+    "firstName": "Alex",
+    "lastName": "Chen",
+    "tel": "+15065550192",
     "role": "volunteer",
     "city": "Saint John, NB",
     "skills": ["python", "react"],
@@ -86,10 +81,10 @@ The biggest bottleneck in small teams is the frontend engineer waiting on the ba
 ```json
 // Request
 {
-  "email": "jane@example.com",
-  "firstName": "Jane",
-  "lastName": "Doe",
-  "tel": "+15065550199",
+  "email": "volunteer@example.com",
+  "firstName": "Alex",
+  "lastName": "Chen",
+  "tel": "+15065550192",
   "role": "volunteer",
   "city": "Saint John, NB",
   "skills": ["python", "gis_mapping"],
@@ -101,35 +96,25 @@ The biggest bottleneck in small teams is the frontend engineer waiting on the ba
 { "success": true, "isUpdate": false }
 ```
 
-> **Why this matters:** Engineer 1 can mock this API in `localStorage` or with a 5-line local mock file and build 100% of the UI immediately while Engineer 2 configures the live Google Cloud environment.
+> **Benefit:** Frontend contributors can test UI behaviors locally using mock data while backend contributors provision Firestore and deploy endpoints in parallel.
 
 ---
 
-## 4. Sprint Schedule & Milestones (2-Week Plan)
+## 4. Availability-Based Milestones
 
-### Week 1: Core Build (Parallel Work)
-* **Day 1 (All 3):** 30-minute sync. Agree on the architecture map, JSON API contracts, and GitHub repo setup.
-* **Days 2–4:**
-  * **Engineer 1:** Builds the desktop & mobile web forms, integrates `skills_parser.js`, and builds the availability matrix.
-  * **Engineer 2:** Provisions Google Cloud project, creates Firestore schema, deploys `checkVolunteerEmail` and `submitVolunteerProfile` endpoints with CASL audit logging.
-  * **Engineer 3:** Sets up the `Active Projects` Google Sheet, installs the Apps Script `onEdit` trigger, and sets up GitHub Actions CI/CD to deploy the frontend to Firebase Hosting / Cloudflare Pages.
-* **Day 5 (Integration Day):** Connect frontend to the live Cloud Functions. Verify real-time email lookup and profile upsert.
+### Stream 1: Core Build
+* **Frontend:** Responsive intake form, NLP skill extractor (`skills_parser.js`), and availability selector.
+* **Backend:** Firestore schema setup, CASL audit trails, and email check/submit endpoints.
+* **Integrations:** `Active Projects` Google Sheet, `onEdit` Apps Script webhook, and QR links.
 
-### Week 2: Edge Cases, Kiosk Mode & Deployment
-* **Days 6–7:**
-  * **Engineer 1:** Adds `?mode=kiosk` 10-second auto-reset timer and autofill suppression for the on-site laptop.
-  * **Engineer 2:** Locks down Firestore Security Rules (ensures PII is not readable by public unauthenticated calls).
-  * **Engineer 3:** Connects BigQuery streaming export and builds the organizer query filter (e.g., filter volunteers by skill + Tuesday evening + Saint John).
-* **Day 8:** Full dry run with all 3 engineers testing both mobile QR scanning and the desktop laptop kiosk.
-* **Day 9 (Tuesday Meetup):** Live debut at the Social Enterprise Hub (139 Prince Edward St)!
+### Stream 2: Polish & Security
+* **Kiosk Station:** Add 10-second auto-reset timer and suppress autofill for welcome desk laptops (`?mode=kiosk`).
+* **Data Security:** Firestore Security Rules restricting public PII read access.
+* **Target Milestone:** **Tue Dec 1, 6:00 PM** dry-run verification ahead of Hack Night!
 
 ---
 
-## 5. Team Git & PR Workflow
-1. **Main Branch Protected:** Nobody pushes directly to `main`.
-2. **Branch Naming:**
-   * `feat/frontend-availability-grid`
-   * `feat/backend-email-lookup`
-   * `feat/sheets-sync-webhook`
-3. **PR Rule:** Every PR requires at least **1 review approval** from a teammate before merging.
-4. **Automated Previews:** Set up PR preview deployments (e.g. Firebase Hosting Preview Channels or Vercel Previews) so the team can click and test features directly on their phones before merging!
+## 5. Contribution & Review Guidelines
+1. **Branch Names:** Use descriptive feature branches (`feat/form-availability`, `feat/cloud-functions-api`, `feat/sheets-sync`).
+2. **Pull Requests:** Keep PRs modular and scoped to one feature or fix.
+3. **Privacy First:** Never commit actual volunteer emails, phone numbers, or credentials.

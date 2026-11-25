@@ -252,7 +252,7 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
               <text
                 x="110"
                 y="46"
-                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+                fontFamily="system-ui, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
                 fontSize="28"
                 fontWeight="600"
                 letterSpacing="1.5"
@@ -264,7 +264,7 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
               <text
                 x="112"
                 y="74"
-                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
+                fontFamily="system-ui, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
                 fontSize="18"
                 fontWeight="600"
                 letterSpacing="0.5"
@@ -611,7 +611,7 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
                 rows={5}
                 value={bioText}
                 onChange={(e) => setBioText(e.target.value)}
-                placeholder="e.g. Front-end engineer with React, Python, and UI/UX design experience. Passionate about community mapping..."
+                placeholder="e.g. Front-end developer with React, Python, and UI/UX design experience. Passionate about community mapping..."
                 className="w-full p-3.5 bg-[#FBFBFD] border border-[#E5E5EA] rounded-xl text-xs text-[#1D1D1F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0071E3]/30"
               />
               <div className="flex justify-end gap-2">

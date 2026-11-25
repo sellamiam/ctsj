@@ -1,9 +1,10 @@
 # Civic Tech Saint John (CTSJ) — Volunteer & Project Intelligence Platform
-## Complete System Architecture, Data Schema, and Engineering Blueprint (v2.1)
+## Complete System Architecture, Data Schema, and Platform Blueprint (v2.1)
 
-> **Prepared For:** Civic Tech Saint John Steering Committee & Engineering Team  
+> **Prepared For:** Civic Tech Saint John Steering Committee & Core Contributors  
 > **Community Partner:** Human Development Council (HDC) / Code for Canada Network  
 > **Meeting Venue:** Social Enterprise Hub, 139 Prince Edward St, Saint John, NB  
+> **Target Completion:** **Tue Dec 1, 6:00 PM** (Ready for Tuesday Hack Night)  
 > **Status:** Multi-Device Spec (Mobile, Desktop & On-Site Kiosk Station)
 
 ---
