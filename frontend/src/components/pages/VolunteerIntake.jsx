@@ -1,5 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { SKILL_TAXONOMY, parseSkillsFromText, searchSkills } from "./skills_parser";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  SKILL_TAXONOMY,
+  parseSkillsFromText,
+  searchSkills,
+} from "./skills_parser";
+import LOGO from "../Logo";
+import { createSubmission } from "@/services/submissionService";
 
 /**
  * Civic Tech Saint John (CTSJ) - Clean Minimalist Intake Form
@@ -45,25 +51,21 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
   // UI state
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [skillQuery, setSkillQuery] = useState("");
-  const [skillSuggestions, setSkillSuggestions] = useState([]);
   const [showBioModal, setShowBioModal] = useState(false);
   const [bioText, setBioText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [kioskCountdown, setKioskCountdown] = useState(10);
 
   const autocompleteRef = useRef(null);
 
   // Handle skill search autocomplete
-  useEffect(() => {
-    if (skillQuery.trim().length > 0) {
-      const results = searchSkills(skillQuery).filter(
-        (s) => !selectedSkills.includes(s.label)
-      );
-      setSkillSuggestions(results);
-    } else {
-      setSkillSuggestions([]);
-    }
+  const skillSuggestions = useMemo(() => {
+    if (skillQuery.trim().length === 0) return [];
+    return searchSkills(skillQuery).filter(
+      (s) => !selectedSkills.includes(s.label),
+    );
   }, [skillQuery, selectedSkills]);
 
   // Handle on-blur email lookup
@@ -71,11 +73,14 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
     if (!email || !email.includes("@")) return;
 
     try {
-      const res = await fetch("https://api.civictechsaintjohn.ca/checkVolunteerEmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.toLowerCase().trim() }),
-      });
+      const res = await fetch(
+        "https://api.civictechsaintjohn.ca/checkVolunteerEmail",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.toLowerCase().trim() }),
+        },
+      );
       const data = await res.json();
 
       if (data.exists && data.profile) {
@@ -86,7 +91,12 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
         if (data.profile.role) setRole(data.profile.role);
         if (data.profile.city) setCity(data.profile.city);
         if (data.profile.skills?.length) setSelectedSkills(data.profile.skills);
-        if (data.profile.availability) setAvailability(data.profile.availability);
+        if (data.profile.availability)
+          setAvailability(data.profile.availability);
+
+        console.log(data);
+      } else {
+        setIsExistingUser(false);
       }
     } catch (err) {
       console.log("Lookup mock bypass", err);
@@ -99,7 +109,6 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
       setSelectedSkills([...selectedSkills, skillLabel]);
     }
     setSkillQuery("");
-    setSkillSuggestions([]);
   };
 
   const removeSkill = (skillLabel) => {
@@ -124,15 +133,18 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
     setAvailability({ ...availability, days });
   };
 
-  const toggleSlot = (day, slot) => {
-    const currentSlots = availability.slots[day] || [];
-    const updated = currentSlots.includes(slot)
-      ? currentSlots.filter((s) => s !== slot)
-      : [...currentSlots, slot];
-    setAvailability({
-      ...availability,
-      slots: { ...availability.slots, [day]: updated },
+  const toggleSlot = (slot) => {
+    const allHaveSlot = availability.days.every((day) =>
+      (availability.slots[day] || []).includes(slot),
+    );
+    const slots = { ...availability.slots };
+    availability.days.forEach((day) => {
+      const current = slots[day] || [];
+      slots[day] = allHaveSlot
+        ? current.filter((s) => s !== slot)
+        : Array.from(new Set([...current, slot]));
     });
+    setAvailability({ ...availability, slots });
   };
 
   // Submit Handler
@@ -140,31 +152,48 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
     e.preventDefault();
     if (!email || !firstName || !lastName || !termsAccepted) return;
 
-    setSubmitting(true);
-    // Submit API call...
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 600);
+    const data = {
+      email: email.toLowerCase().trim(),
+      firstName,
+      lastName,
+      termsAccepted,
+      tel,
+      role,
+      city,
+      availability,
+      skills: selectedSkills,
+      caslEmailOptIn,
+      bioRawText: bioText,
+    };
+
+    createSubmission(data);
+
+    // setSubmitError("");
+    // setSubmitting(true);
+    // try {
+    //   const res = await fetch(
+    //     "https://api.civictechsaintjohn.ca/submitVolunteerProfile",
+    //     {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       body: JSON.stringify(data),
+    //     },
+    //   );
+    //   if (!res.ok) {
+    //     const body = await res.json().catch(() => ({}));
+    //     throw new Error(
+    //       body.error || "Unable to save your profile. Please try again.",
+    //     );
+    //   }
+    //   setSubmitted(true);
+    // } catch (err) {
+    //   setSubmitError(err.message || "Something went wrong. Please try again.");
+    // } finally {
+    //   setSubmitting(false);
+    // }
   };
 
-  // Kiosk Auto-Reset
-  useEffect(() => {
-    if (!submitted || !kioskMode) return;
-    const interval = setInterval(() => {
-      setKioskCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          handleReset();
-          return 10;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [submitted, kioskMode]);
-
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setEmail("");
     setFirstName("");
     setLastName("");
@@ -176,9 +205,26 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
     setTermsAccepted(false);
     setCaslEmailOptIn(false);
     setIsExistingUser(false);
+    setSkillQuery("");
+    setBioText("");
+    setShowBioModal(false);
+    setSubmitError("");
     setSubmitted(false);
     setKioskCountdown(10);
-  };
+  }, []);
+
+  // Kiosk Auto-Reset
+  useEffect(() => {
+    if (!submitted || !kioskMode) return;
+    const timeout = setTimeout(() => {
+      if (kioskCountdown <= 1) {
+        handleReset();
+      } else {
+        setKioskCountdown(kioskCountdown - 1);
+      }
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [submitted, kioskMode, kioskCountdown, handleReset]);
 
   if (submitted) {
     return (
@@ -191,12 +237,17 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
             {isExistingUser ? "Profile Updated" : "Welcome to Civic Tech"}
           </h2>
           <p className="text-[#86868B] text-sm mb-6 leading-relaxed">
-            Thank you, {firstName}. Your profile has been securely saved to our community roster.
+            Thank you, {firstName}. Your profile has been securely saved to our
+            community roster.
           </p>
           {kioskMode ? (
             <div className="space-y-4">
               <p className="text-xs text-[#86868B]">
-                Screen will clear in <span className="font-semibold text-[#1D1D1F]">{kioskCountdown}s</span> for the next volunteer.
+                Screen will clear in{" "}
+                <span className="font-semibold text-[#1D1D1F]">
+                  {kioskCountdown}s
+                </span>{" "}
+                for the next volunteer.
               </p>
               <button
                 onClick={handleReset}
@@ -222,74 +273,18 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
     <div className="min-h-screen bg-[#F5F5F7] py-12 px-4 sm:px-6 font-sans antialiased text-[#1D1D1F]">
       <div className="max-w-3xl mx-auto">
         {/* Minimalist header with Official CTSJ Logo */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <svg
-              className="h-10 text-[#1D1D1F] transition-opacity hover:opacity-90"
-              viewBox="0 0 540 100"
-              fill="currentColor"
-            >
-              {/* Power Icon */}
-              <g transform="translate(10, 10)">
-                <path
-                  d="M 40 12 A 32 32 0 1 0 56 12"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="48"
-                  y1="4"
-                  x2="48"
-                  y2="36"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-              </g>
-              {/* CIVIC TECH SAINT JOHN */}
-              <text
-                x="110"
-                y="46"
-                fontFamily="system-ui, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-                fontSize="28"
-                fontWeight="600"
-                letterSpacing="1.5"
-                fill="currentColor"
-              >
-                CIVIC TECH SAINT JOHN
-              </text>
-              {/* Technology + Social Good */}
-              <text
-                x="112"
-                y="74"
-                fontFamily="system-ui, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
-                fontSize="18"
-                fontWeight="600"
-                letterSpacing="0.5"
-                fill="currentColor"
-              >
-                Technology + Social Good
-              </text>
-            </svg>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1D1D1F]">
-            Volunteer & Community Intake
-          </h1>
-          <p className="text-xs sm:text-sm text-[#86868B] mt-1.5 font-normal">
-            Build open-source solutions for Greater Saint John.
-          </p>
-        </div>
-
+        <LOGO />
         {/* Existing User Notification */}
         {isExistingUser && (
           <div className="mb-6 p-4 bg-white rounded-2xl border border-[#0071E3]/20 shadow-sm flex items-start gap-3 transition-all animate-fadeIn">
             <span className="text-[#0071E3] text-lg mt-0.5">ℹ</span>
             <div className="text-sm">
-              <p className="font-medium text-[#1D1D1F]">Existing profile recognized</p>
+              <p className="font-medium text-[#1D1D1F]">
+                Existing profile recognized
+              </p>
               <p className="text-[#86868B] text-xs mt-0.5">
-                We've loaded your current skills and availability. Review or update anything below, then submit to save.
+                We've loaded your current skills and availability. Review or
+                update anything below, then submit to save.
               </p>
             </div>
           </div>
@@ -323,7 +318,10 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
 
               <div>
                 <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
-                  Phone Number <span className="text-xs text-[#86868B] font-normal">(Optional)</span>
+                  Phone Number{" "}
+                  <span className="text-xs text-[#86868B] font-normal">
+                    (Optional)
+                  </span>
                 </label>
                 <input
                   type="tel"
@@ -364,7 +362,10 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
 
               <div>
                 <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
-                  Community Role <span className="text-xs text-[#86868B] font-normal">(Optional)</span>
+                  Community Role{" "}
+                  <span className="text-xs text-[#86868B] font-normal">
+                    (Optional)
+                  </span>
                 </label>
                 <select
                   value={role}
@@ -381,7 +382,10 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
 
               <div>
                 <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
-                  Municipality / City <span className="text-xs text-[#86868B] font-normal">(Optional)</span>
+                  Municipality / City{" "}
+                  <span className="text-xs text-[#86868B] font-normal">
+                    (Optional)
+                  </span>
                 </label>
                 <select
                   value={city}
@@ -404,7 +408,10 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-[#86868B]">
-                Skills & Experience <span className="text-xs font-normal lowercase">(optional)</span>
+                Skills & Experience{" "}
+                <span className="text-xs font-normal lowercase">
+                  (optional)
+                </span>
               </h2>
               <button
                 type="button"
@@ -419,7 +426,8 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
             <div className="flex flex-wrap gap-2 mb-3 min-h-[38px] p-2 bg-[#FBFBFD] border border-[#E5E5EA] rounded-2xl">
               {selectedSkills.length === 0 ? (
                 <span className="text-xs text-[#86868B]/70 py-1 px-2 font-normal">
-                  No skills selected yet. Type below to search or paste your summary.
+                  No skills selected yet. Type below to search or paste your
+                  summary.
                 </span>
               ) : (
                 selectedSkills.map((skill) => (
@@ -477,7 +485,8 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
           {/* SECTION 3: Minimalist Availability Selector */}
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#86868B] mb-3">
-              Availability <span className="text-xs font-normal lowercase">(optional)</span>
+              Availability{" "}
+              <span className="text-xs font-normal lowercase">(optional)</span>
             </h2>
 
             {/* Day Segmented Controls */}
@@ -510,15 +519,13 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {SLOTS.map((slot) => {
                     const isSelected = availability.days.some((day) =>
-                      (availability.slots[day] || []).includes(slot)
+                      (availability.slots[day] || []).includes(slot),
                     );
                     return (
                       <button
                         key={slot}
                         type="button"
-                        onClick={() => {
-                          availability.days.forEach((day) => toggleSlot(day, slot));
-                        }}
+                        onClick={() => toggleSlot(slot)}
                         className={`py-2 px-3 rounded-xl text-xs font-medium border text-center transition ${
                           isSelected
                             ? "bg-[#0071E3] border-[#0071E3] text-white"
@@ -563,7 +570,8 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
                 className="mt-0.5 w-4 h-4 rounded text-[#0071E3] focus:ring-[#0071E3] border-[#E5E5EA]"
               />
               <span className="text-xs text-[#86868B] leading-relaxed">
-                I consent to receive occasional emails regarding project calls, meetups, and workshops (CASL compliant, unsubscribe anytime).
+                I consent to receive occasional emails regarding project calls,
+                meetups, and workshops (CASL compliant, unsubscribe anytime).
               </span>
             </label>
 
@@ -582,8 +590,14 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
                   <span>Submit Profile</span>
                 )}
               </button>
+              {submitError && (
+                <p className="text-center text-xs text-[#C62828] mt-2.5 font-medium">
+                  {submitError}
+                </p>
+              )}
               <p className="text-center text-xs text-[#86868B] mt-2.5 font-normal">
-                Your contact details are encrypted and will never be shared publicly.
+                Your contact details are encrypted and will never be shared
+                publicly.
               </p>
             </div>
           </div>
@@ -605,7 +619,8 @@ export default function VolunteerIntakeForm({ kioskMode = false }) {
                 </button>
               </div>
               <p className="text-xs text-[#86868B]">
-                Paste a short bio, LinkedIn summary, or bullet points. We’ll automatically extract relevant technical and community skills.
+                Paste a short bio, LinkedIn summary, or bullet points. We’ll
+                automatically extract relevant technical and community skills.
               </p>
               <textarea
                 rows={5}
