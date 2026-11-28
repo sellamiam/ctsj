@@ -1,6 +1,8 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+//all functions can be modified to callthe backend
+
 export async function getAllVolunteers() {
   try {
     const querySnapshot = await getDocs(collection(db, "volunteers"));

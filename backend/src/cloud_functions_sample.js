@@ -3,11 +3,8 @@
  * Runtime: Node.js 20 (Google Cloud Functions / Cloud Run)
  */
 
-const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-
-initializeApp();
-const db = getFirestore();
+const { db, app } = require("./config/firebase");
+const { FieldValue } = require("firebase/firestore");
 
 /**
  * 1. Email Lookup Endpoint (Real-Time Pre-Fill Check)
@@ -40,7 +37,8 @@ exports.checkVolunteerEmail = async (req, res) => {
     // Return existing profile data so the volunteer can edit/update it
     return res.status(200).json({
       exists: true,
-      message: "You are already in our database! Would you like to update your profile?",
+      message:
+        "You are already in our database! Would you like to update your profile?",
       profile: {
         firstName: data.firstName || "",
         lastName: data.lastName || "",
@@ -48,9 +46,13 @@ exports.checkVolunteerEmail = async (req, res) => {
         role: data.role || "volunteer",
         city: data.city || "Saint John, NB",
         skills: data.skills || [],
-        availability: data.availability || { days: [], slots: {}, hoursPerWeek: "" },
-        bioRawText: data.bioRawText || ""
-      }
+        availability: data.availability || {
+          days: [],
+          slots: {},
+          hoursPerWeek: "",
+        },
+        bioRawText: data.bioRawText || "",
+      },
     });
   } catch (error) {
     console.error("Error checking email:", error);
@@ -81,19 +83,19 @@ exports.submitVolunteerProfile = async (req, res) => {
     availability,
     bioRawText,
     termsAccepted,
-    caslEmailOptIn
+    caslEmailOptIn,
   } = req.body;
 
   // Validation: Mandatory fields ONLY
   if (!email || !firstName || !lastName) {
     return res.status(400).json({
-      error: "First Name, Last Name, and Email are mandatory."
+      error: "First Name, Last Name, and Email are mandatory.",
     });
   }
 
   if (!termsAccepted) {
     return res.status(400).json({
-      error: "You must accept the Community Terms & Conditions to proceed."
+      error: "You must accept the Community Terms & Conditions to proceed.",
     });
   }
 
@@ -119,9 +121,9 @@ exports.submitVolunteerProfile = async (req, res) => {
         termsVersion: "v1.0_2026",
         caslEmailOptIn: Boolean(caslEmailOptIn),
         caslConsentType: "express",
-        consentTimestamp: new Date().toISOString()
+        consentTimestamp: new Date().toISOString(),
       },
-      updatedAt: FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     if (!isUpdate) {
@@ -136,11 +138,13 @@ exports.submitVolunteerProfile = async (req, res) => {
       isUpdate: isUpdate,
       message: isUpdate
         ? "Your profile has been successfully updated!"
-        : "Welcome to Civic Tech Saint John! Your profile has been created."
+        : "Welcome to Civic Tech Saint John! Your profile has been created.",
     });
   } catch (error) {
     console.error("Error saving volunteer profile:", error);
-    return res.status(500).json({ error: "Failed to save profile to database" });
+    return res
+      .status(500)
+      .json({ error: "Failed to save profile to database" });
   }
 };
 
@@ -155,7 +159,17 @@ exports.syncProjectWebhook = async (req, res) => {
     return res.status(401).json({ error: "Unauthorized: Invalid secret key" });
   }
 
-  const { projectId, name, status, leadName, leadEmail, neededSkills, repoUrl, communicationChannel, syncTimestamp } = req.body;
+  const {
+    projectId,
+    name,
+    status,
+    leadName,
+    leadEmail,
+    neededSkills,
+    repoUrl,
+    communicationChannel,
+    syncTimestamp,
+  } = req.body;
 
   if (!projectId) {
     return res.status(400).json({ error: "Missing required projectId" });
@@ -175,10 +189,13 @@ exports.syncProjectWebhook = async (req, res) => {
         lastSyncedFromSheet: syncTimestamp || new Date().toISOString(),
         updatedAt: FieldValue.serverTimestamp(),
       },
-      { merge: true }
+      { merge: true },
     );
 
-    return res.status(200).json({ success: true, message: `Project ${projectId} synced successfully.` });
+    return res.status(200).json({
+      success: true,
+      message: `Project ${projectId} synced successfully.`,
+    });
   } catch (error) {
     console.error("Firestore project sync error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
